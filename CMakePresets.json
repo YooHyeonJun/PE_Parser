@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "msvc",
+      "displayName": "MSVC x64 (설치된 최신 Visual Studio 자동 선택)",
+      "description": "generator 미지정 → CMake가 설치된 최신 VS(2022/2026) 생성기를 고른다. Qt 경로는 CMakeLists.txt의 QT_ROOT 규칙을 따른다.",
+      "binaryDir": "${sourceDir}/build",
+      "architecture": { "value": "x64", "strategy": "set" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug", "configurePreset": "msvc", "configuration": "Debug" },
+    { "name": "release", "configurePreset": "msvc", "configuration": "Release" }
+  ]
+}
