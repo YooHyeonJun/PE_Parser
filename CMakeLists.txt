@@ -16,7 +16,12 @@ endif()
 add_library(pecore STATIC
     src/core/PeTypes.h
     src/core/PeFile.h
-    src/core/PeFile.cpp
+    src/core/PeFile.cpp          # 로드 / 파싱 순서
+    src/core/PeHeaders.cpp       # DOS / NT / File / Optional Header, Data Directory, DOS Stub
+    src/core/PeSections.cpp      # Section Table, RVA ↔ 파일 오프셋, 메모리 이미지 읽기
+    src/core/PeDirectories.cpp   # Import / Export
+    src/core/PeFormat.h
+    src/core/PeFormat.cpp        # 표시용 문자열 변환
 )
 target_include_directories(pecore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -43,8 +48,14 @@ qt_standard_project_setup()   # AUTOMOC / AUTOUIC 등
 
 qt_add_executable(PEParser WIN32
     src/main.cpp
+    src/gui/GuiCommon.h          # 페이지 파일 공통 헬퍼 (hex 포맷, 색, ADD_FIELD)
     src/gui/MainWindow.h
-    src/gui/MainWindow.cpp
+    src/gui/MainWindow.cpp       # 창 틀, 트리 뼈대, 테이블/Hex 공통, 이동
+    src/gui/HeaderPages.cpp      # 헤더 노드/화면
+    src/gui/SectionPages.cpp     # SECTION 노드/섹션 hex, 섹션 안 구조 배치
+    src/gui/DirectoryPages.cpp   # Import / Export 화면
+    src/gui/HexView.h
+    src/gui/HexView.cpp
 )
 target_link_libraries(PEParser PRIVATE pecore Qt6::Widgets)
 

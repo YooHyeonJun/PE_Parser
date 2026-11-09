@@ -137,6 +137,40 @@ struct SectionHeader {
 };
 static_assert(sizeof(SectionHeader) == 40);
 
+// Data Directory #1 (Import): 이 구조체 배열이 이어지고, 모든 필드가 0인 항목으로 끝난다.
+struct ImportDescriptor {
+    uint32_t OriginalFirstThunk;  // ILT(Import Lookup Table) RVA — 함수 이름/Ordinal 목록 (원본)
+    uint32_t TimeDateStamp;       // 0: 바인딩 안 됨, -1: 새 방식 바인딩
+    uint32_t ForwarderChain;
+    uint32_t Name;                // DLL 이름 문자열 RVA
+    uint32_t FirstThunk;          // IAT(Import Address Table) RVA — 로드 시 실제 함수 주소로 덮어써짐
+};
+static_assert(sizeof(ImportDescriptor) == 20);
+
+// Data Directory #0 (Export)
+struct ExportDirectory {
+    uint32_t Characteristics;
+    uint32_t TimeDateStamp;
+    uint16_t MajorVersion;
+    uint16_t MinorVersion;
+    uint32_t Name;                   // DLL 이름 문자열 RVA
+    uint32_t Base;                   // 시작 Ordinal 번호
+    uint32_t NumberOfFunctions;      // AddressOfFunctions 배열 길이
+    uint32_t NumberOfNames;          // AddressOfNames / AddressOfNameOrdinals 배열 길이
+    uint32_t AddressOfFunctions;     // uint32_t[NumberOfFunctions] : 함수 RVA
+    uint32_t AddressOfNames;         // uint32_t[NumberOfNames]     : 이름 문자열 RVA (알파벳순)
+    uint32_t AddressOfNameOrdinals;  // uint16_t[NumberOfNames]     : AddressOfFunctions 인덱스
+};
+static_assert(sizeof(ExportDirectory) == 40);
+
 #pragma pack(pop)
+
+// Data Directory 인덱스
+constexpr size_t kDirExport = 0;
+constexpr size_t kDirImport = 1;
+
+// ILT/IAT 항목의 최상위 비트가 1이면 이름이 아니라 Ordinal로 import
+constexpr uint32_t kOrdinalFlag32 = 0x80000000u;
+constexpr uint64_t kOrdinalFlag64 = 0x8000000000000000ull;
 
 }  // namespace pe
