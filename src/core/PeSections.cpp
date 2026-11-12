@@ -148,4 +148,12 @@ std::optional<std::string> PeFile::readStringAtRva(uint32_t rva, size_t maxLen) 
     return std::nullopt;  // maxLen 안에 NUL 없음
 }
 
+std::optional<uint32_t> PeFile::vaToRva(uint64_t va) const {
+    const uint64_t base = imageBase();
+    if (va < base || va - base > 0xFFFFFFFFull) return std::nullopt;
+    const auto rva = static_cast<uint32_t>(va - base);
+    if (!spanAtRva(rva).mapped) return std::nullopt;
+    return rva;
+}
+
 }  // namespace pe

@@ -64,7 +64,9 @@ bool PeFile::parse() {
 
     parseImports();
     parseExports();
-    // TODO: Resource / Relocation / TLS / Debug 디렉터리 파싱
+    parseTls();  // Import 뒤 — 콜백 배열이 IAT 와 겹치는지 검사한다
+    parseRelocations();
+    // TODO: Resource / Debug 디렉터리 파싱
     return true;
 }
 

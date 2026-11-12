@@ -61,28 +61,32 @@ void MainWindow::showImportThunks(bool iat) {
     const bool is64 = pe_->is64();
     const size_t ts = is64 ? 8 : 4;
     const int w = is64 ? 16 : 8;
-    auto readThunk = [&](uint64_t off) -> uint64_t {
+    // RVA 기준으로 읽는다 — 배열이 파일에 없는 가상(0) 영역에 걸쳐 있어도 로더가 보는 값(0)으로 표시
+    auto readThunk = [&](uint32_t rva) -> uint64_t {
         if (is64) {
             uint64_t v = 0;
-            pe_->read(off, v);
+            pe_->readRva(rva, v);
             return v;
         }
         uint32_t v = 0;
-        pe_->read(off, v);
+        pe_->readRva(rva, v);
         return v;
+    };
+    auto addThunkRow = [&](uint32_t rva, const QStringList& rest) {
+        const uint64_t off = pe_->fileOffsetOr(rva);
+        addRowText(QStringList{offStr(off)} + rest, isVirtualOffset(off) ? kNoJump : off, ts);
     };
 
     size_t dlls = 0, entries = 0;
     table_->setUpdatesEnabled(false);
     for (const auto& m : pe_->imports()) {
         const uint32_t arrRva = iat ? m.descriptor.FirstThunk : m.descriptor.OriginalFirstThunk;
-        const auto arrOff = arrRva ? pe_->rvaToOffset(arrRva) : std::nullopt;
-        if (!arrOff) continue;
+        if (!arrRva || !pe_->spanAtRva(arrRva).mapped) continue;
         ++dlls;
         for (size_t i = 0; i < m.functions.size(); ++i) {
             const auto& f = m.functions[i];
-            const uint64_t off = *arrOff + i * ts;
-            const uint64_t v = readThunk(off);
+            const uint32_t rva = arrRva + static_cast<uint32_t>(i * ts);
+            const uint64_t v = readThunk(rva);
             QString desc, val;
             if (iat && v != f.thunkValue) {  // 바인딩된 IAT: 디스크에 이미 주소가 들어 있음
                 desc = tr("Bound Address");
@@ -91,11 +95,10 @@ void MainWindow::showImportThunks(bool iat) {
             }
             val = f.byOrdinal ? tr("Ordinal %1 (0x%2)").arg(f.ordinal).arg(f.ordinal, 4, 16, QLatin1Char('0'))
                               : QString("%1  %2").arg(hex(f.hint, 4), QString::fromStdString(f.name));
-            addRowText({hex(off, 8), hex(v, w), desc, val}, off, ts);
+            addThunkRow(rva, {hex(v, w), desc, val});
         }
-        const uint64_t endOff = *arrOff + m.functions.size() * ts;
-        addRowText({hex(endOff, 8), hex(readThunk(endOff), w), tr("End of Imports"), QString::fromStdString(m.dllName)},
-                   endOff, ts);
+        const uint32_t endRva = arrRva + static_cast<uint32_t>(m.functions.size() * ts);
+        addThunkRow(endRva, {hex(readThunk(endRva), w), tr("End of Imports"), QString::fromStdString(m.dllName)});
         entries += m.functions.size();
     }
     table_->setUpdatesEnabled(true);

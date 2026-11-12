@@ -28,7 +28,8 @@ void MainWindow::buildSectionNodes(QTreeWidgetItem* root) {
         QString label;
         Page page;
         int index;
-        bool importDlls = false;  // IMPORT Directory Table 아래에 DLL 별 노드
+        bool importDlls = false;   // IMPORT Directory Table 아래에 DLL 별 노드
+        bool relocBlocks = false;  // IMAGE_BASE_RELOCATION 아래에 블록 별 노드
     };
     std::vector<Node> nodes;
 
@@ -59,6 +60,20 @@ void MainWindow::buildSectionNodes(QTreeWidgetItem* root) {
         addNode(firstOffset({K::ExportOrdinalTable}), "EXPORT Ordinal Table", Page::ExportOrdinalTable);
         addNode(firstOffset({K::ExportName, K::ExportForwarder}), "EXPORT Names", Page::ExportNames);
     }
+    if (const auto& tls = pe_->tls()) {
+        // 파일에 위치가 없으면(가상 영역) 오프셋 최댓값 → 섹션 밖, 루트 끝에 붙는다
+        constexpr uint64_t kNoOffset = ~0ull;
+        addNode(firstOffset({K::TlsDirectory}).value_or(kNoOffset), "IMAGE_TLS_DIRECTORY", Page::TlsDirectory);
+        if (tls->addressOfCallBacks)
+            addNode(firstOffset({K::TlsCallbacks}).value_or(kNoOffset),
+                    QString("TLS CallBacks (%1)").arg(tls->callbacks.size()), Page::TlsCallbacks);
+    }
+    if (!pe_->relocations().empty()) {
+        const auto off = firstOffset({K::RelocBlockHeader});
+        addNode(off.value_or(~0ull), QString("IMAGE_BASE_RELOCATION (%1)").arg(pe_->relocations().size()),
+                Page::RelocBlocks);
+        nodes.back().relocBlocks = true;
+    }
 
     // 아직 파싱하지 않은 디렉터리는 원본 바이트 노드로 (Import/Export/IAT 는 위에서 처리)
     static const char* kDirNodeNames[pe::kNumDataDirectories] = {
@@ -71,6 +86,8 @@ void MainWindow::buildSectionNodes(QTreeWidgetItem* root) {
         if (i == pe::kDirImport && pe_->imports().empty()) name = "IMPORT Directory Table";
         if (i == pe::kDirExport && !pe_->exports()) name = "IMAGE_EXPORT_DIRECTORY";
         if (i == 12 && pe_->imports().empty()) name = "IMPORT Address Table";
+        if (i == pe::kDirTls && pe_->tls()) name = nullptr;  // 위에서 파싱한 노드로 표시
+        if (i == pe::kDirBaseReloc && !pe_->relocations().empty()) name = nullptr;
         if (!name) continue;
         addNode(directoryFileOffset(i), QString(name) + "  (raw)", Page::DirectoryData, static_cast<int>(i));
     }
@@ -86,6 +103,13 @@ void MainWindow::buildSectionNodes(QTreeWidgetItem* root) {
                 makeTreeItem(item,
                              QString("%1 (%2)").arg(QString::fromStdString(imports[i].dllName)).arg(imports[i].functions.size()),
                              Page::ImportModule, i);
+        }
+        if (n.relocBlocks) {
+            const auto& blocks = pe_->relocations();
+            for (int i = 0; i < static_cast<int>(blocks.size()); ++i)
+                makeTreeItem(item,
+                             QString("Page %1 (%2)").arg(hex(blocks[i].header.VirtualAddress, 8)).arg(blocks[i].entries.size()),
+                             Page::RelocBlock, i);
         }
     }
 }

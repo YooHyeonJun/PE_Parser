@@ -55,8 +55,33 @@ const char* regionKindName(RegionKind k) {
         case RegionKind::ExportOrdinalTable: return "Export Ordinal Table";
         case RegionKind::ExportName: return "Export Name";
         case RegionKind::ExportForwarder: return "Forwarder";
+        case RegionKind::TlsDirectory: return "TLS Directory";
+        case RegionKind::TlsCallbacks: return "TLS Callbacks";
+        case RegionKind::TlsRawData: return "TLS Raw Data";
+        case RegionKind::RelocBlockHeader: return "Reloc Block Header";
+        case RegionKind::RelocEntries: return "Reloc Entries";
     }
     return "?";
+}
+
+const char* relocTypeToString(uint8_t type, uint16_t machine) {
+    const bool arm = machine == 0x01C0 || machine == 0x01C2 || machine == 0x01C4;  // ARM / THUMB / ARMNT
+    const bool arm64 = machine == 0xAA64;
+    const bool mips = machine == 0x0166 || machine == 0x0168 || machine == 0x0266 || machine == 0x0366 ||
+                      machine == 0x0466;
+    switch (type) {
+        case 0: return "ABSOLUTE";
+        case 1: return "HIGH";
+        case 2: return "LOW";
+        case 3: return "HIGHLOW";
+        case 4: return "HIGHADJ";
+        case 5: return arm ? "ARM_MOV32" : mips ? "MIPS_JMPADDR" : "(5: 아키텍처 전용)";
+        case 7: return arm ? "THUMB_MOV32" : "(7: 아키텍처 전용)";
+        case 8: return "(8: RISC-V 전용)";
+        case 9: return mips ? "MIPS_JMPADDR16" : "(9: 아키텍처 전용)";
+        case 10: return "DIR64";
+        default: return arm64 ? "(ARM64 미정의)" : "(정의되지 않음)";
+    }
 }
 
 namespace {

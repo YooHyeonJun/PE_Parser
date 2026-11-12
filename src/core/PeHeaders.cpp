@@ -56,7 +56,7 @@ bool PeFile::parseHeaders() {
     if (fileHeader_.NumberOfSections > kMaxSectionsXP)
         warn("섹션이 " + std::to_string(fileHeader_.NumberOfSections) + "개입니다 (XP 로더 한도 96, Vista/7+ 는 65535).");
 
-    // 4) Optional Header — Magic 으로 PE32 / PE32+ 판별. 고정 위치에서 구조체 전체를 읽는다.
+    // 4) Optional Header — Magic 으로 PE32 / PE32+ 판별.
     const uint64_t optOff = optionalHeaderOffset();
     uint16_t magic = 0;
     readPadded(optOff, magic);

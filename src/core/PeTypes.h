@@ -137,7 +137,8 @@ struct SectionHeader {
 };
 static_assert(sizeof(SectionHeader) == 40);
 
-// Data Directory #1 (Import): 이 구조체 배열이 이어지고, 모든 필드가 0인 항목으로 끝난다.
+// Data Directory #1 (Import): 이 구조체 배열이 이어진다.
+// 스펙상 모든 필드가 0인 항목으로 끝나지만, 실제 로더는 Name 또는 FirstThunk 가 0 이면 끝으로 본다.
 struct ImportDescriptor {
     uint32_t OriginalFirstThunk;  // ILT(Import Lookup Table) RVA — 함수 이름/Ordinal 목록 (원본)
     uint32_t TimeDateStamp;       // 0: 바인딩 안 됨, -1: 새 방식 바인딩
@@ -163,11 +164,50 @@ struct ExportDirectory {
 };
 static_assert(sizeof(ExportDirectory) == 40);
 
+// Data Directory #9 (TLS). 주소 필드는 RVA 가 아니라 VA (ImageBase 포함 절대 주소)
+struct TlsDirectory32 {
+    uint32_t StartAddressOfRawData;  // TLS 초기값 템플릿 시작 VA
+    uint32_t EndAddressOfRawData;    // 템플릿 끝 VA
+    uint32_t AddressOfIndex;         // 로더가 TLS 인덱스를 써 넣을 변수 VA
+    uint32_t AddressOfCallBacks;     // 콜백 함수 포인터 배열 VA (NULL 로 끝남)
+    uint32_t SizeOfZeroFill;         // 템플릿 뒤에 0으로 채울 크기
+    uint32_t Characteristics;        // 비트 20~23: 정렬
+};
+static_assert(sizeof(TlsDirectory32) == 24);
+
+struct TlsDirectory64 {
+    uint64_t StartAddressOfRawData;
+    uint64_t EndAddressOfRawData;
+    uint64_t AddressOfIndex;
+    uint64_t AddressOfCallBacks;
+    uint32_t SizeOfZeroFill;
+    uint32_t Characteristics;
+};
+static_assert(sizeof(TlsDirectory64) == 40);
+
+// Data Directory #5 (Base Relocation): 이 블록 헤더 + WORD 항목 배열이 연달아 이어진다.
+//   항목 WORD = 상위 4비트 Type | 하위 12비트 Offset (블록 VirtualAddress 기준)
+struct BaseRelocationBlock {
+    uint32_t VirtualAddress;  // 이 블록이 다루는 4KB 페이지의 RVA
+    uint32_t SizeOfBlock;     // 헤더(8) + 항목 배열 바이트 수
+};
+static_assert(sizeof(BaseRelocationBlock) == 8);
+
 #pragma pack(pop)
+
+// Base Relocation 항목 Type
+constexpr uint8_t kRelocAbsolute = 0;  // 패딩 (무시)
+constexpr uint8_t kRelocHigh = 1;      // 16비트: delta 상위 16비트
+constexpr uint8_t kRelocLow = 2;       // 16비트: delta 하위 16비트
+constexpr uint8_t kRelocHighLow = 3;   // 32비트 전체 (PE32 표준)
+constexpr uint8_t kRelocHighAdj = 4;   // 상위 16비트 + 다음 항목을 하위 16비트 파라미터로 사용
+constexpr uint8_t kRelocDir64 = 10;    // 64비트 전체 (PE32+ 표준)
 
 // Data Directory 인덱스
 constexpr size_t kDirExport = 0;
 constexpr size_t kDirImport = 1;
+constexpr size_t kDirBaseReloc = 5;
+constexpr size_t kDirTls = 9;
 
 // ILT/IAT 항목의 최상위 비트가 1이면 이름이 아니라 Ordinal로 import
 constexpr uint32_t kOrdinalFlag32 = 0x80000000u;

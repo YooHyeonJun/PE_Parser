@@ -23,6 +23,8 @@ struct HexRegion;
 //   HeaderPages.cpp    헤더 노드와 화면 (DOS / Stub / NT / File / Optional / Data Directories / Section Header)
 //   SectionPages.cpp   SECTION 노드와 섹션 hex, 섹션 안 구조 노드 배치, 미파싱 디렉터리 hex
 //   DirectoryPages.cpp Import / Export 화면
+//   TlsPages.cpp       TLS 화면
+//   RelocPages.cpp     Base Relocation 화면
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -50,6 +52,10 @@ private:
         // Import / Export (DirectoryPages.cpp)
         Imports, ImportModule, ImportAddressTable, ImportNameTable, ImportHintNames,
         ExportDirectory, ExportFunctions, ExportNameTable, ExportOrdinalTable, ExportNames,
+        // TLS (TlsPages.cpp)
+        TlsDirectory, TlsCallbacks,
+        // Base Relocation (RelocPages.cpp)
+        RelocBlocks, RelocBlock,
         // Hex 뷰 (MainWindow.cpp / SectionPages.cpp)
         FileData, SectionData, DirectoryData
     };
@@ -112,6 +118,18 @@ private:
     void showExportNameTable();
     void showExportOrdinalTable();
     void showExportNames();
+
+    // ======================================================================
+    // TLS (TlsPages.cpp)
+    // ======================================================================
+    void showTlsDirectory();
+    void showTlsCallbacks();
+
+    // ======================================================================
+    // Base Relocation (RelocPages.cpp)
+    // ======================================================================
+    void showRelocBlocks();          // 블록 목록
+    void showRelocBlock(int index);  // 블록 하나의 항목들
 
     // ======================================================================
     // 상태

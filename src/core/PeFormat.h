@@ -13,6 +13,7 @@ const char* machineToString(uint16_t machine);
 const char* subsystemToString(uint16_t subsystem);
 const char* dataDirectoryName(size_t index);
 const char* regionKindName(RegionKind kind);
+const char* relocTypeToString(uint8_t type, uint16_t machine);  // Base Relocation 항목 Type
 std::string fileCharacteristicsToString(uint16_t c);
 std::string sectionCharacteristicsToString(uint32_t c);
 

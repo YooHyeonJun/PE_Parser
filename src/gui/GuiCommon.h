@@ -45,6 +45,11 @@ inline QColor regionColor(pe::RegionKind k) {
         case K::ExportOrdinalTable: return QColor(0xCF, 0xD8, 0xDC);
         case K::ExportName: return QColor(0xFF, 0xF9, 0xC4);
         case K::ExportForwarder: return QColor(0xF8, 0xBB, 0xD0);
+        case K::TlsDirectory: return QColor(0xFF, 0xAB, 0x91);
+        case K::TlsCallbacks: return QColor(0xEF, 0x9A, 0x9A);
+        case K::TlsRawData: return QColor(0xDC, 0xED, 0xC8);
+        case K::RelocBlockHeader: return QColor(0xFF, 0xCC, 0x80);
+        case K::RelocEntries: return QColor(0xD1, 0xC4, 0xE9);
     }
     return QColor(Qt::lightGray);
 }
