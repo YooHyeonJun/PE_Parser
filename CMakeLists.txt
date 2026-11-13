@@ -20,7 +20,6 @@ add_library(pecore STATIC
     src/core/PeHeaders.cpp       # DOS / NT / File / Optional Header, Data Directory, DOS Stub
     src/core/PeSections.cpp      # Section Table, RVA ↔ 파일 오프셋, 메모리 이미지 읽기
     src/core/PeDirectories.cpp   # Import / Export
-    src/core/PeTls.cpp           # TLS
     src/core/PeRelocs.cpp        # Base Relocation
     src/core/PeFormat.h
     src/core/PeFormat.cpp        # 표시용 문자열 변환
@@ -56,7 +55,6 @@ qt_add_executable(PEParser WIN32
     src/gui/HeaderPages.cpp      # 헤더 노드/화면
     src/gui/SectionPages.cpp     # SECTION 노드/섹션 hex, 섹션 안 구조 배치
     src/gui/DirectoryPages.cpp   # Import / Export 화면
-    src/gui/TlsPages.cpp         # TLS 화면
     src/gui/RelocPages.cpp       # Base Relocation 화면
     src/gui/HexView.h
     src/gui/HexView.cpp

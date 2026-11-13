@@ -60,15 +60,8 @@ void MainWindow::buildSectionNodes(QTreeWidgetItem* root) {
         addNode(firstOffset({K::ExportOrdinalTable}), "EXPORT Ordinal Table", Page::ExportOrdinalTable);
         addNode(firstOffset({K::ExportName, K::ExportForwarder}), "EXPORT Names", Page::ExportNames);
     }
-    if (const auto& tls = pe_->tls()) {
-        // 파일에 위치가 없으면(가상 영역) 오프셋 최댓값 → 섹션 밖, 루트 끝에 붙는다
-        constexpr uint64_t kNoOffset = ~0ull;
-        addNode(firstOffset({K::TlsDirectory}).value_or(kNoOffset), "IMAGE_TLS_DIRECTORY", Page::TlsDirectory);
-        if (tls->addressOfCallBacks)
-            addNode(firstOffset({K::TlsCallbacks}).value_or(kNoOffset),
-                    QString("TLS CallBacks (%1)").arg(tls->callbacks.size()), Page::TlsCallbacks);
-    }
     if (!pe_->relocations().empty()) {
+        // 파일에 위치가 없으면(가상 영역) 오프셋 최댓값 → 섹션 밖, 루트 끝에 붙는다
         const auto off = firstOffset({K::RelocBlockHeader});
         addNode(off.value_or(~0ull), QString("IMAGE_BASE_RELOCATION (%1)").arg(pe_->relocations().size()),
                 Page::RelocBlocks);
@@ -86,8 +79,7 @@ void MainWindow::buildSectionNodes(QTreeWidgetItem* root) {
         if (i == pe::kDirImport && pe_->imports().empty()) name = "IMPORT Directory Table";
         if (i == pe::kDirExport && !pe_->exports()) name = "IMAGE_EXPORT_DIRECTORY";
         if (i == 12 && pe_->imports().empty()) name = "IMPORT Address Table";
-        if (i == pe::kDirTls && pe_->tls()) name = nullptr;  // 위에서 파싱한 노드로 표시
-        if (i == pe::kDirBaseReloc && !pe_->relocations().empty()) name = nullptr;
+        if (i == pe::kDirBaseReloc && !pe_->relocations().empty()) name = nullptr;  // 위에서 파싱한 노드로 표시
         if (!name) continue;
         addNode(directoryFileOffset(i), QString(name) + "  (raw)", Page::DirectoryData, static_cast<int>(i));
     }

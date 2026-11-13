@@ -20,7 +20,10 @@ namespace pe {
 
 namespace {
 constexpr size_t kMaxRelocBlocks = 65536;
-constexpr size_t kMaxRelocEntries = 1u << 21;  // 전체 항목 상한 (약 200만)
+// 전체 항목 상한: 실제 항목은 파일 바이트에 있어야 하므로 (파일 크기 / 2)를 넘을 수 없다.
+// 가상(0) 영역을 가리키는 거대한 SizeOfBlock 같은 기형 파일만 막으면 된다.
+// (고정 2M 상한은 실제 .NET 네이티브 이미지(.ni.dll, 약 257만 항목)에서 걸렸음)
+constexpr size_t kMinRelocEntryCap = 1u << 21;
 
 std::string hex8(uint32_t v) {
     char b[16];
@@ -50,6 +53,7 @@ void PeFile::parseRelocations() {
     const uint64_t dirEnd = dirBegin + dir->Size;
     uint64_t cur = dirBegin;
     size_t totalEntries = 0;
+    const size_t kMaxRelocEntries = std::max<size_t>(kMinRelocEntryCap, data_.size() / 2);
     size_t outsideImage = 0, unknownType = 0;
 
     while (cur + sizeof(BaseRelocationBlock) <= dirEnd) {

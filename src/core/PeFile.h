@@ -51,32 +51,6 @@ struct ExportInfo {
     std::vector<ExportFunction> functions;  // RVA 가 0 인 빈 슬롯은 제외
 };
 
-// --- TLS 파싱 결과 ---
-struct TlsCallback {
-    uint64_t va = 0;                     // 배열에 적힌 콜백 주소 (VA)
-    std::optional<uint32_t> rva;         // 이미지 안을 가리키면 RVA
-    uint64_t entryOffset = 0;            // 이 포인터가 저장된 배열 슬롯의 파일 오프셋
-    uint64_t codeOffset = kNoFileOffset; // 콜백 코드의 파일 오프셋
-};
-
-struct TlsInfo {
-    // 원본 구조체 (is64 에 따라 하나만 유효) — 필드 표시용
-    TlsDirectory32 dir32{};
-    TlsDirectory64 dir64{};
-    uint64_t directoryOffset = 0;  // 파일 오프셋
-
-    // PE32 / PE32+ 공통 값
-    uint64_t startAddressOfRawData = 0;
-    uint64_t endAddressOfRawData = 0;
-    uint64_t addressOfIndex = 0;
-    uint64_t addressOfCallBacks = 0;
-    uint32_t sizeOfZeroFill = 0;
-    uint32_t characteristics = 0;
-
-    std::vector<TlsCallback> callbacks;  // 종료 NULL 제외
-    uint64_t callbackArrayOffset = kNoFileOffset;  // 콜백 배열 시작 파일 오프셋
-};
-
 // --- Base Relocation 파싱 결과 ---
 struct RelocEntry {
     uint16_t raw = 0;              // 원본 WORD
@@ -106,9 +80,6 @@ enum class RegionKind {
     ExportOrdinalTable,  // AddressOfNameOrdinals
     ExportName,          // Export 함수 이름 문자열
     ExportForwarder,     // Forwarder 문자열
-    TlsDirectory,        // IMAGE_TLS_DIRECTORY
-    TlsCallbacks,        // TLS 콜백 포인터 배열
-    TlsRawData,          // TLS 초기값 템플릿
     RelocBlockHeader,    // IMAGE_BASE_RELOCATION 블록 헤더 (8바이트)
     RelocEntries,        // 블록의 WORD 항목 배열
 };
@@ -128,7 +99,6 @@ struct Region {
 //   PeHeaders.cpp     DOS / NT / File / Optional Header, Data Directory, DOS Stub
 //   PeSections.cpp    Section Table, RVA ↔ 파일 오프셋 매핑, 메모리 이미지 관점 읽기
 //   PeDirectories.cpp Import / Export 파싱, 구조 위치(Region) 기록
-//   PeTls.cpp         TLS 디렉터리 / 콜백 파싱
 //   PeRelocs.cpp      Base Relocation 블록 파싱
 class PeFile {
 public:
@@ -228,9 +198,6 @@ public:
     const std::vector<ImportModule>& imports() const { return imports_; }
     const std::optional<ExportInfo>& exports() const { return exports_; }
 
-    // TLS (PeTls.cpp) — 없으면 nullopt
-    const std::optional<TlsInfo>& tls() const { return tls_; }
-
     // Base Relocation (PeRelocs.cpp) — 없으면 빈 vector
     const std::vector<RelocBlock>& relocations() const { return relocs_; }
 
@@ -270,9 +237,6 @@ private:
     void addRegion(RegionKind kind, uint64_t offset, uint64_t size, std::string label);
     void addRvaRegion(RegionKind kind, uint32_t rva, uint64_t size, std::string label);  // RVA 변환 실패 시 무시
 
-    // --- TLS (PeTls.cpp) ---
-    void parseTls();
-
     // --- Base Relocation (PeRelocs.cpp) ---
     void parseRelocations();
 
@@ -298,7 +262,6 @@ private:
     // 디렉터리
     std::vector<ImportModule> imports_;
     std::optional<ExportInfo> exports_;
-    std::optional<TlsInfo> tls_;
     std::vector<RelocBlock> relocs_;
     std::vector<Region> regions_;
 };

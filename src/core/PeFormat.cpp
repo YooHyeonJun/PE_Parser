@@ -55,9 +55,6 @@ const char* regionKindName(RegionKind k) {
         case RegionKind::ExportOrdinalTable: return "Export Ordinal Table";
         case RegionKind::ExportName: return "Export Name";
         case RegionKind::ExportForwarder: return "Forwarder";
-        case RegionKind::TlsDirectory: return "TLS Directory";
-        case RegionKind::TlsCallbacks: return "TLS Callbacks";
-        case RegionKind::TlsRawData: return "TLS Raw Data";
         case RegionKind::RelocBlockHeader: return "Reloc Block Header";
         case RegionKind::RelocEntries: return "Reloc Entries";
     }

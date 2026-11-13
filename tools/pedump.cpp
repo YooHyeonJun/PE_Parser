@@ -1,6 +1,7 @@
 // core 라이브러리 단독 검증용 콘솔 도구 (Qt 비의존)
-// 사용법: pedump <file> [--regions]
+// 사용법: pedump <file> [--regions | --stats]
 //   --regions : 파싱한 구조의 파일 위치 목록만 출력 (offset<TAB>size<TAB>kind<TAB>label)
+//   --stats   : 집계값 한 줄 + 경고 (대량 검증용)
 #include "core/PeFile.h"
 #include "core/PeFormat.h"
 
@@ -13,6 +14,7 @@ int wmain(int argc, wchar_t* argv[]) {
         return 1;
     }
     const bool regionsOnly = argc >= 3 && std::wcscmp(argv[2], L"--regions") == 0;
+    const bool statsOnly = argc >= 3 && std::wcscmp(argv[2], L"--stats") == 0;
 
     pe::PeFile pe;
     if (!pe.load(argv[1])) {
@@ -24,6 +26,24 @@ int wmain(int argc, wchar_t* argv[]) {
         for (const auto& r : pe.regions())
             std::printf("%llu\t%llu\t%s\t%s\n", static_cast<unsigned long long>(r.offset),
                         static_cast<unsigned long long>(r.size), pe::regionKindName(r.kind), r.label.c_str());
+        return 0;
+    }
+
+    if (statsOnly) {
+        // 외부 도구(dumpbin 등)와 비교하기 위한 집계값 한 줄: key=value
+        size_t impFuncs = 0, expEntries = 0, relocEntries = 0;
+        for (const auto& m : pe.imports()) impFuncs += m.functions.size();
+        if (const auto& exp = pe.exports())
+            for (const auto& f : exp->functions) {
+                size_t names = 1;
+                for (size_t p = f.name.find(" / "); p != std::string::npos; p = f.name.find(" / ", p + 3)) ++names;
+                expEntries += names;  // 이름 없는 함수 1줄, 별칭은 이름마다 1줄 (dumpbin 표기와 동일)
+            }
+        for (const auto& b : pe.relocations()) relocEntries += b.entries.size();
+        std::printf("sections=%zu impDlls=%zu impFuncs=%zu expEntries=%zu relocBlocks=%zu relocEntries=%zu warnings=%zu\n",
+                    pe.sections().size(), pe.imports().size(), impFuncs, expEntries, pe.relocations().size(),
+                    relocEntries, pe.warnings().size());
+        for (const auto& w : pe.warnings()) std::printf("WARNING: %s\n", w.c_str());
         return 0;
     }
 
@@ -83,20 +103,6 @@ int wmain(int argc, wchar_t* argv[]) {
                         f.forwarder.empty() ? "" : " -> ", f.forwarder.c_str());
         }
         if (exp->functions.size() > 8) std::printf("  ...\n");
-    }
-
-    // TLS
-    if (const auto& tls = pe.tls()) {
-        std::printf("\nTLS: raw data 0x%llX-0x%llX, index 0x%llX, callbacks %zu\n",
-                    static_cast<unsigned long long>(tls->startAddressOfRawData),
-                    static_cast<unsigned long long>(tls->endAddressOfRawData),
-                    static_cast<unsigned long long>(tls->addressOfIndex), tls->callbacks.size());
-        for (const auto& cb : tls->callbacks) {
-            if (cb.rva)
-                std::printf("  0x%llX (RVA 0x%08X)\n", static_cast<unsigned long long>(cb.va), *cb.rva);
-            else
-                std::printf("  0x%llX (outside image)\n", static_cast<unsigned long long>(cb.va));
-        }
     }
 
     // Base Relocation

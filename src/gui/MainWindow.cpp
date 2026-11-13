@@ -183,8 +183,6 @@ void MainWindow::showPage(Page page, int index) {
         case Page::ExportNameTable: showExportNameTable(); break;
         case Page::ExportOrdinalTable: showExportOrdinalTable(); break;
         case Page::ExportNames: showExportNames(); break;
-        case Page::TlsDirectory: showTlsDirectory(); break;
-        case Page::TlsCallbacks: showTlsCallbacks(); break;
         case Page::RelocBlocks: showRelocBlocks(); break;
         case Page::RelocBlock: showRelocBlock(index); break;
         // Hex 뷰
